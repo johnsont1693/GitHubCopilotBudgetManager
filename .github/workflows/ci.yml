@@ -66,6 +66,7 @@ jobs:
         run: >-
           dotnet tool run dotnet-ef migrations has-pending-model-changes
           --no-build
+          --configuration Release
           --project src/BudgetManager.Infrastructure/BudgetManager.Infrastructure.csproj
           --startup-project src/BudgetManager.Infrastructure/BudgetManager.Infrastructure.csproj
           --context BudgetManagerDbContext
