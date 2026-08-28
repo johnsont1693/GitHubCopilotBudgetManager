@@ -1,5 +1,6 @@
 # GitHub Copilot Budget Manager
 
+[![CI](https://github.com/johnsont1693/GitHubCopilotBudgetManager/actions/workflows/ci.yml/badge.svg)](https://github.com/johnsont1693/GitHubCopilotBudgetManager/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet&logoColor=white)](global.json)
 [![Infrastructure](https://img.shields.io/badge/Azure-Bicep%20%2B%20azd-0078D4)](infra/README.md)
