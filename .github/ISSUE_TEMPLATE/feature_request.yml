@@ -1,0 +1,60 @@
+name: Feature request
+description: Propose a new metric, capability, integration, or safety control.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Never paste real enterprise names, GitHub logins, email addresses, billing records,
+        or credentials. Use fictional values such as `contoso.com`.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: Describe the operational or financial governance problem, not a proposed implementation.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Metric or classification policy
+        - Budget guardrail or approval workflow
+        - Notification routing or delivery
+        - Dashboard or reporting
+        - Deployment, IaC, or operations
+        - Modular or standalone adoption
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: metric-contract
+    attributes:
+      label: Metric contract
+      description: Required only for a new metric. Document source, unit, direction, supported scopes, aggregation, freshness, and limitations. State "Not a metric" otherwise.
+    validations:
+      required: true
+
+  - type: textarea
+    id: safety
+    attributes:
+      label: Safety, privacy, and unknown-data behavior
+      description: How should this behave when telemetry is missing, stale, or suppressed? Does it expose per-user data, and does it introduce a financial write?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered

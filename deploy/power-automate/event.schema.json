@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Budget Manager integration event v1",
+  "type": "object",
+  "required": ["schemaVersion", "eventType", "eventFingerprint", "enterpriseId", "occurredAt", "subject", "payload"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "eventType": { "type": "string", "minLength": 1 },
+    "eventFingerprint": { "type": "string", "minLength": 1 },
+    "enterpriseId": { "type": "string", "format": "uuid" },
+    "occurredAt": { "type": "string", "format": "date-time" },
+    "subject": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "dashboardUrl": { "type": ["string", "null"], "format": "uri" },
+    "recipients": {
+      "type": "object",
+      "properties": {
+        "userPrincipalNames": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "ownerPrincipalNames": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "adminPrincipalNames": { "type": "array", "items": { "type": "string" }, "uniqueItems": true }
+      },
+      "additionalProperties": false
+    },
+    "payload": { "type": "object" }
+  },
+  "additionalProperties": false
+}

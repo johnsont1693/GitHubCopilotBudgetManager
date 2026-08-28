@@ -1,0 +1,38 @@
+name: CodeQL
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 7 * * 1"
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  analyze:
+    name: Analyze
+    # Code scanning is free on public repositories but requires GitHub Advanced Security on
+    # private ones, so this job is skipped rather than failed when GHAS is unavailable.
+    #   ENABLE_CODEQL = true   always run (private repositories that do have GHAS)
+    #   ENABLE_CODEQL = false  never run
+    #   unset                  run only on public repositories, and only for push and
+    #                          pull_request, because the schedule event carries no
+    #                          repository payload to test visibility against
+    if: >-
+      vars.ENABLE_CODEQL == 'true' ||
+      (vars.ENABLE_CODEQL != 'false' && github.event.repository.private == false)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: github/codeql-action/init@6f5948dfacef28e207b48d0905cf90c03365536d # v3
+        with:
+          languages: csharp,javascript-typescript
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          global-json-file: global.json
+      - run: dotnet build GitHubCopilotBudgetManager.slnx --configuration Release
+      - uses: github/codeql-action/analyze@6f5948dfacef28e207b48d0905cf90c03365536d # v3

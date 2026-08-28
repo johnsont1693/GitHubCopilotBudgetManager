@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Copilot Budget Manager</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <script src="theme.js?v=1"></script>
+  <link rel="stylesheet" href="styles.css?v=3">
+  <script src="config.js?v=3"></script>
+  <script type="module" src="app.js?v=4"></script>
+</head>
+<body>
+  <a class="skip-link" href="#workspace">Skip to workspace</a>
+  <header class="topbar">
+    <div class="brand-lockup">
+      <span class="brand-mark" aria-hidden="true">CB</span>
+      <div class="brand-copy">
+        <div class="brand-title">
+          <strong><span class="brand-name-full">Copilot Budget Manager</span><span class="brand-name-compact">Budget Manager</span></strong>
+          <span class="product-badge">GitHub Enterprise</span>
+        </div>
+        <span id="enterprise-name">Enterprise</span>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <span class="sync-state" id="sync-state"><span class="status-dot neutral"></span>Connecting</span>
+      <button class="icon-button" id="refresh-button" type="button" title="Refresh data" aria-label="Refresh data">↻</button>
+      <a class="command-link" id="sign-in-link" href="/.auth/login/aad">Sign in</a>
+    </div>
+  </header>
+
+  <div class="shell">
+    <nav class="side-nav" aria-label="Administration views">
+      <div class="nav-section">
+        <p class="nav-label">Workspace</p>
+        <button class="nav-item active" type="button" data-view="overview">Overview</button>
+        <button class="nav-item" type="button" data-view="budgets">Budgets</button>
+        <button class="nav-item" type="button" data-view="health">Usage health</button>
+        <button class="nav-item" type="button" data-view="hierarchy">Hierarchy</button>
+      </div>
+      <div class="nav-section">
+        <p class="nav-label">Governance</p>
+        <button class="nav-item" type="button" data-view="approvals">Approvals</button>
+        <button class="nav-item" type="button" data-view="policies">Policies</button>
+        <button class="nav-item" type="button" data-view="identity">Identity</button>
+        <button class="nav-item" type="button" data-view="notifications">Notifications</button>
+      </div>
+      <div class="nav-section">
+        <p class="nav-label">System</p>
+        <button class="nav-item" type="button" data-view="operations">Operations</button>
+        <button class="nav-item" type="button" data-view="audit">Audit</button>
+      </div>
+    </nav>
+
+    <main id="workspace" class="workspace" tabindex="-1">
+      <section class="view active" id="view-overview" aria-labelledby="overview-title">
+        <div class="view-heading">
+          <div>
+            <p class="eyebrow">Current billing period</p>
+            <h1 id="overview-title">Enterprise overview</h1>
+          </div>
+          <span class="freshness" id="overview-freshness">No observations</span>
+        </div>
+
+        <div class="metric-grid" id="overview-metrics" aria-live="polite">
+          <article class="metric-card skeleton"></article>
+          <article class="metric-card skeleton"></article>
+          <article class="metric-card skeleton"></article>
+          <article class="metric-card skeleton"></article>
+        </div>
+
+        <div class="overview-grid">
+          <section class="panel" aria-labelledby="budget-position-title">
+            <div class="panel-heading">
+              <h2 id="budget-position-title">Budget position</h2>
+              <button class="text-button" type="button" data-go-to="budgets">View budgets</button>
+            </div>
+            <div id="budget-position" class="empty-state">No budget observations</div>
+          </section>
+          <section class="panel" aria-labelledby="health-distribution-title">
+            <div class="panel-heading">
+              <h2 id="health-distribution-title">Usage health</h2>
+              <button class="text-button" type="button" data-go-to="health">View evidence</button>
+            </div>
+            <div id="health-distribution" class="status-distribution"></div>
+          </section>
+        </div>
+
+        <div class="overview-grid">
+          <section class="panel" aria-labelledby="budget-trend-title">
+            <div class="panel-heading"><h2 id="budget-trend-title">Budget trend</h2><span class="freshness">30 days</span></div>
+            <div id="budget-trend" class="trend-chart"></div>
+          </section>
+          <section class="panel" aria-labelledby="health-trend-title">
+            <div class="panel-heading"><h2 id="health-trend-title">Health trend</h2><span class="freshness">30 days</span></div>
+            <div id="health-trend" class="trend-chart"></div>
+          </section>
+        </div>
+
+        <section class="panel" aria-labelledby="attention-title">
+          <div class="panel-heading">
+            <h2 id="attention-title">Needs attention</h2>
+            <span id="attention-count" class="count-badge">0</span>
+          </div>
+          <div id="attention-list" class="attention-list"></div>
+        </section>
+      </section>
+
+      <section class="view" id="view-budgets" aria-labelledby="budgets-title">
+        <div class="view-heading">
+          <div><p class="eyebrow">GitHub authoritative values</p><h1 id="budgets-title">Budgets</h1></div>
+          <button class="primary-button" type="button" id="new-change-button">Propose increase</button>
+        </div>
+        <div class="filter-row">
+          <label>Scope<select id="budget-scope-filter"><option value="">All scopes</option></select></label>
+          <label>Search<input id="budget-search" type="search" placeholder="Budget or entity"></label>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>Entity</th><th>Scope</th><th>Consumed</th><th>Budget</th><th>Utilization</th><th>Enforcement</th></tr></thead><tbody id="budget-table"></tbody></table></div>
+        <section class="subsection" aria-labelledby="user-budget-title">
+          <div class="panel-heading"><h2 id="user-budget-title">User budget states</h2><label>Search<input id="user-budget-search" type="search" placeholder="User or budget"></label></div>
+          <div class="table-wrap"><table><thead><tr><th>User</th><th>Budget</th><th>Consumed</th><th>Target</th><th>Override</th><th>Observed</th></tr></thead><tbody id="user-budget-table"></tbody></table></div>
+        </section>
+      </section>
+
+      <section class="view" id="view-health" aria-labelledby="health-title">
+        <div class="view-heading"><div><p class="eyebrow">Explainable classifications</p><h1 id="health-title">Usage health</h1></div></div>
+        <div class="filter-row">
+          <label>Scope<select id="health-scope-filter"><option value="">All scopes</option><option>Enterprise</option><option>Organization</option><option>CostCenter</option><option>Team</option><option>Repository</option><option>User</option></select></label>
+          <label>Status<select id="health-status-filter"><option value="">All statuses</option><option>green</option><option>yellow</option><option>red</option><option>unknown</option></select></label>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>Entity</th><th>Scope</th><th>Status</th><th>Score</th><th>Evaluated</th><th><span class="visually-hidden">Actions</span></th></tr></thead><tbody id="health-table"></tbody></table></div>
+      </section>
+
+      <section class="view" id="view-hierarchy" aria-labelledby="hierarchy-title">
+        <div class="view-heading"><div><p class="eyebrow">Observed GitHub structure</p><h1 id="hierarchy-title">Entity hierarchy</h1></div></div>
+        <div class="filter-row">
+          <label>Scope<select id="hierarchy-scope-filter"><option value="">All scopes</option><option>Enterprise</option><option>Organization</option><option>CostCenter</option><option>Team</option><option>Repository</option><option>User</option></select></label>
+          <label>Search<input id="hierarchy-search" type="search" placeholder="Entity or parent"></label>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>Entity</th><th>Scope</th><th>Parent</th><th>Members</th><th>Health</th><th>Observed</th></tr></thead><tbody id="hierarchy-table"></tbody></table></div>
+      </section>
+
+      <section class="view" id="view-approvals" aria-labelledby="approvals-title">
+        <div class="view-heading"><div><p class="eyebrow">Enterprise admin queue</p><h1 id="approvals-title">Budget approvals</h1></div></div>
+        <div id="approval-list" class="approval-list"></div>
+      </section>
+
+      <section class="view" id="view-policies" aria-labelledby="policies-title">
+        <div class="view-heading"><div><p class="eyebrow">Enforced and delegated profiles</p><h1 id="policies-title">Policies</h1></div><button class="primary-button" type="button" id="new-policy-button">New policy</button></div>
+        <div class="table-wrap"><table><thead><tr><th>Name</th><th>Mode</th><th>Governance</th><th>Scope</th><th>Version</th><th>State</th></tr></thead><tbody id="policy-table"></tbody></table></div>
+      </section>
+
+      <section class="view" id="view-identity" aria-labelledby="identity-title">
+        <div class="view-heading"><div><p class="eyebrow">GitHub to Entra mapping</p><h1 id="identity-title">Identity</h1></div></div>
+        <div class="table-wrap"><table><thead><tr><th>GitHub login</th><th>Entra account</th><th>Department</th><th>Cost center</th><th>Status</th></tr></thead><tbody id="identity-table"></tbody></table></div>
+      </section>
+
+      <section class="view" id="view-notifications" aria-labelledby="notifications-title">
+        <div class="view-heading"><div><p class="eyebrow">Teams and Outlook workflow</p><h1 id="notifications-title">Notification delivery</h1></div></div>
+        <div class="filter-row">
+          <label>Status<select id="notification-status-filter"><option value="">All statuses</option><option>pending</option><option>sent</option><option>failed</option><option>suppressed</option></select></label>
+          <label>Recipient<input id="notification-recipient-filter" type="search" placeholder="Principal or channel"></label>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>Created</th><th>Event</th><th>Recipient</th><th>Channel</th><th>Delivery</th><th>Outbox</th><th>Error</th></tr></thead><tbody id="notification-table"></tbody></table></div>
+      </section>
+
+      <section class="view" id="view-operations" aria-labelledby="operations-title">
+        <div class="view-heading"><div><p class="eyebrow">Data freshness and processing</p><h1 id="operations-title">Operations</h1></div><div class="view-heading-actions" id="operations-admin-actions"><button class="secondary-button" id="preview-retention-button" type="button">Preview retention</button><button class="secondary-button" id="preview-reconciliation-button" type="button">Preview baseline reconciliation</button></div></div>
+        <div id="operation-preview-summary" class="operation-preview-summary" aria-live="polite"></div>
+        <div class="panel-heading"><h2>Recent ingestions</h2></div>
+        <div id="operation-list" class="operation-list"></div>
+        <section class="subsection" aria-labelledby="safety-history-title">
+          <div class="panel-heading"><h2 id="safety-history-title">Safety evidence</h2><span class="freshness">Retention and baseline reconciliation</span></div>
+          <div class="table-wrap"><table><thead><tr><th>Time</th><th>Operation</th><th>State</th><th>Evidence</th><th>Correlation</th></tr></thead><tbody id="safety-history-table"></tbody></table></div>
+        </section>
+        <section class="subsection" aria-labelledby="billing-exports-title">
+          <div class="panel-heading"><h2 id="billing-exports-title">GitHub billing exports</h2></div>
+          <div class="table-wrap"><table><thead><tr><th>Period</th><th>Type</th><th>Status</th><th>Files</th><th>Actor</th><th>Observed</th></tr></thead><tbody id="billing-export-table"></tbody></table></div>
+        </section>
+      </section>
+
+      <section class="view" id="view-audit" aria-labelledby="audit-title">
+        <div class="view-heading"><div><p class="eyebrow">Append-only evidence</p><h1 id="audit-title">Audit log</h1></div><div class="view-heading-actions"><button class="secondary-button" type="button" data-export="audit">Export audit</button><button class="secondary-button" type="button" data-export="classifications">Export health</button><button class="secondary-button" type="button" data-export="identity-mappings">Export identity</button></div></div>
+        <div class="table-wrap"><table><thead><tr><th>Time</th><th>Event</th><th>Actor</th><th>Target</th><th>Correlation</th></tr></thead><tbody id="audit-table"></tbody></table></div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="policy-dialog">
+    <form method="dialog" id="policy-form">
+      <div class="dialog-heading"><h2>New policy</h2><button class="icon-button" value="cancel" aria-label="Close">×</button></div>
+      <div class="form-grid">
+        <label>Name<input name="name" required maxlength="256"></label>
+        <label>Mode<select name="mode"><option value="weighted">Weighted</option><option value="precedence">Precedence</option></select></label>
+        <label>Governance<select name="governance"><option value="enforced">Enforced</option><option value="delegated">Delegated</option></select></label>
+        <label>Scope<select name="scopeKind"><option value="enterprise">Enterprise</option><option value="organization">Organization</option><option value="costCenter">Cost center</option></select></label>
+        <label class="full-width">Scope ID<input name="scopeExternalId" required></label>
+        <label>Yellow minimum<input name="yellow" type="number" min="0" max="100" value="40"></label>
+        <label>Green minimum<input name="green" type="number" min="0" max="100" value="70"></label>
+      </div>
+      <div class="dialog-actions"><button value="cancel" class="secondary-button">Cancel</button><button value="default" class="primary-button" id="save-policy-button">Save policy</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="change-dialog">
+    <form method="dialog" id="change-form">
+      <div class="dialog-heading"><h2>Propose budget increase</h2><button class="icon-button" value="cancel" aria-label="Close">×</button></div>
+      <div class="form-grid">
+        <label class="full-width">Budget<select name="budgetId" id="change-budget-id" required></select></label>
+        <label>Proposed amount<input name="proposedAmount" type="number" min="1" required></label>
+      </div>
+      <div class="dialog-actions"><button value="cancel" class="secondary-button">Cancel</button><button value="default" class="primary-button" id="save-change-button">Create request</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="evidence-dialog" class="wide-dialog">
+    <div class="dialog-content">
+      <div class="dialog-heading"><h2 id="evidence-dialog-title">Classification evidence</h2><button class="icon-button" id="close-evidence-button" type="button" aria-label="Close">×</button></div>
+      <div id="evidence-content"></div>
+    </div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

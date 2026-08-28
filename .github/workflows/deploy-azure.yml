@@ -1,0 +1,276 @@
+name: Deploy Azure Commercial
+
+on:
+  workflow_dispatch:
+    inputs:
+      environmentName:
+        description: Azure Developer CLI environment and GitHub Environment name
+        required: true
+        default: prod
+        type: string
+      deployApplication:
+        description: Build images and deploy the API, worker jobs, and dashboard content
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-azure-${{ inputs.environmentName }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: ${{ inputs.environmentName }}
+    env:
+      API_AUDIENCE: ${{ vars.API_AUDIENCE }}
+      BUDGET_APPROVAL_LIFETIME_HOURS: ${{ vars.BUDGET_APPROVAL_LIFETIME_HOURS || '48' }}
+      BUDGET_COOLDOWN_HOURS: ${{ vars.BUDGET_COOLDOWN_HOURS }}
+      BUDGET_FORECAST_HEADROOM_PERCENT: ${{ vars.BUDGET_FORECAST_HEADROOM_PERCENT }}
+      BUDGET_MAXIMUM_CUMULATIVE_MONTHLY_INCREASE: ${{ vars.BUDGET_MAXIMUM_CUMULATIVE_MONTHLY_INCREASE }}
+      BUDGET_MAXIMUM_DATA_AGE_HOURS: ${{ vars.BUDGET_MAXIMUM_DATA_AGE_HOURS }}
+      BUDGET_MAXIMUM_INCREASE_AMOUNT: ${{ vars.BUDGET_MAXIMUM_INCREASE_AMOUNT }}
+      BUDGET_MAXIMUM_INCREASE_PERCENT: ${{ vars.BUDGET_MAXIMUM_INCREASE_PERCENT }}
+      BUDGET_WRITES_ENABLED: ${{ vars.BUDGET_WRITES_ENABLED || 'false' }}
+      DASHBOARD_API_SCOPE: ${{ vars.DASHBOARD_API_SCOPE }}
+      DASHBOARD_CLIENT_ID: ${{ vars.DASHBOARD_CLIENT_ID }}
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_ENV_NAME: ${{ inputs.environmentName }}
+      AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      GITHUB_APP_INSTALLATION_ID: ${{ vars.GH_APP_INSTALLATION_ID }}
+      GITHUB_APP_ISSUER: ${{ vars.GH_APP_ISSUER }}
+      GITHUB_ENTERPRISE_ID: ${{ vars.GH_ENTERPRISE_ID }}
+      GITHUB_ENTERPRISE_SLUG: ${{ vars.GH_ENTERPRISE_SLUG }}
+      GRAPH_GITHUB_LOGIN_PROPERTY: ${{ vars.GRAPH_GITHUB_LOGIN_PROPERTY }}
+      NOTIFICATION_CHANNELS: ${{ vars.NOTIFICATION_CHANNELS || 'Teams;Outlook' }}
+      NOTIFICATION_RECIPIENTS: ${{ vars.NOTIFICATION_RECIPIENTS }}
+      PUBLISH_BUDGET_LIFECYCLE_EVENTS: ${{ vars.PUBLISH_BUDGET_LIFECYCLE_EVENTS || 'true' }}
+      RAW_REPORT_RETENTION_DAYS: ${{ vars.RAW_REPORT_RETENTION_DAYS }}
+      SQL_ADMIN_LOGIN: ${{ vars.SQL_ADMIN_LOGIN }}
+      SQL_ADMIN_OBJECT_ID: ${{ vars.SQL_ADMIN_OBJECT_ID }}
+      SQL_ADMIN_PRINCIPAL_TYPE: ${{ vars.SQL_ADMIN_PRINCIPAL_TYPE || 'Group' }}
+      TEAMS_CHANNEL_ID: ${{ vars.TEAMS_CHANNEL_ID }}
+      TEAMS_TEAM_ID: ${{ vars.TEAMS_TEAM_ID }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Sign in to Azure with OIDC
+        uses: azure/login@7184910d9eb2b1c5e48f7073824a90609bb9b6d6 # v2
+        with:
+          audience: api://AzureADTokenExchange
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+
+      - name: Install Azure Developer CLI
+        uses: Azure/setup-azd@0b7e3a35ab00f2eee7080c845eb39c3f0ebfa553 # v2
+
+      - name: Sign in Azure Developer CLI with OIDC
+        run: >-
+          azd auth login
+          --client-id "$AZURE_CLIENT_ID"
+          --federated-credential-provider github
+          --tenant-id "$AZURE_TENANT_ID"
+
+      - name: Validate deployment inputs
+        shell: bash
+        env:
+          GITHUB_APP_PRIVATE_KEY: ${{ secrets.GH_APP_PRIVATE_KEY }}
+        run: |
+          : "${AZURE_LOCATION:?Set the AZURE_LOCATION repository variable}"
+          : "${GITHUB_ENTERPRISE_ID:?Set the GH_ENTERPRISE_ID repository variable}"
+          : "${GITHUB_ENTERPRISE_SLUG:?Set the GH_ENTERPRISE_SLUG repository variable}"
+          : "${GITHUB_APP_ISSUER:?Set the GH_APP_ISSUER repository variable}"
+          : "${GITHUB_APP_INSTALLATION_ID:?Set the GH_APP_INSTALLATION_ID repository variable}"
+          : "${SQL_ADMIN_OBJECT_ID:?Set the SQL_ADMIN_OBJECT_ID repository variable}"
+          : "${SQL_ADMIN_LOGIN:?Set the SQL_ADMIN_LOGIN repository variable}"
+          : "${API_AUDIENCE:?Set the API_AUDIENCE repository variable}"
+          : "${BUDGET_COOLDOWN_HOURS:?Set the BUDGET_COOLDOWN_HOURS repository variable}"
+          : "${BUDGET_FORECAST_HEADROOM_PERCENT:?Set the BUDGET_FORECAST_HEADROOM_PERCENT repository variable}"
+          : "${BUDGET_MAXIMUM_CUMULATIVE_MONTHLY_INCREASE:?Set the BUDGET_MAXIMUM_CUMULATIVE_MONTHLY_INCREASE repository variable}"
+          : "${BUDGET_MAXIMUM_DATA_AGE_HOURS:?Set the BUDGET_MAXIMUM_DATA_AGE_HOURS repository variable}"
+          : "${BUDGET_MAXIMUM_INCREASE_AMOUNT:?Set the BUDGET_MAXIMUM_INCREASE_AMOUNT repository variable}"
+          : "${BUDGET_MAXIMUM_INCREASE_PERCENT:?Set the BUDGET_MAXIMUM_INCREASE_PERCENT repository variable}"
+          : "${DASHBOARD_CLIENT_ID:?Set the DASHBOARD_CLIENT_ID repository variable}"
+          : "${DASHBOARD_API_SCOPE:?Set the DASHBOARD_API_SCOPE repository variable}"
+          : "${GRAPH_GITHUB_LOGIN_PROPERTY:?Set the GRAPH_GITHUB_LOGIN_PROPERTY repository variable}"
+          : "${RAW_REPORT_RETENTION_DAYS:?Set the RAW_REPORT_RETENTION_DAYS repository variable}"
+          if [[ ! "$AZURE_ENV_NAME" =~ ^[a-z0-9][a-z0-9-]{0,10}[a-z0-9]$ ]]; then
+            echo "environmentName must be 2-12 lowercase letters, numbers, or internal hyphens." >&2
+            exit 1
+          fi
+          for name in BUDGET_APPROVAL_LIFETIME_HOURS BUDGET_COOLDOWN_HOURS BUDGET_FORECAST_HEADROOM_PERCENT BUDGET_MAXIMUM_CUMULATIVE_MONTHLY_INCREASE BUDGET_MAXIMUM_DATA_AGE_HOURS BUDGET_MAXIMUM_INCREASE_AMOUNT BUDGET_MAXIMUM_INCREASE_PERCENT RAW_REPORT_RETENTION_DAYS; do
+            if [[ ! "${!name}" =~ ^[0-9]+$ ]]; then
+              echo "$name must be a non-negative integer." >&2
+              exit 1
+            fi
+          done
+          if (( BUDGET_APPROVAL_LIFETIME_HOURS < 1 || BUDGET_APPROVAL_LIFETIME_HOURS > 168 )); then echo "BUDGET_APPROVAL_LIFETIME_HOURS must be 1-168." >&2; exit 1; fi
+          if (( BUDGET_FORECAST_HEADROOM_PERCENT > 100 || BUDGET_MAXIMUM_INCREASE_PERCENT > 100 )); then echo "Budget percentage guardrails must be 0-100." >&2; exit 1; fi
+          if (( BUDGET_MAXIMUM_DATA_AGE_HOURS < 1 )); then echo "BUDGET_MAXIMUM_DATA_AGE_HOURS must be positive." >&2; exit 1; fi
+          if (( RAW_REPORT_RETENTION_DAYS < 7 || RAW_REPORT_RETENTION_DAYS > 3650 )); then echo "RAW_REPORT_RETENTION_DAYS must be 7-3650." >&2; exit 1; fi
+          if [[ ! "$GITHUB_APP_INSTALLATION_ID" =~ ^[1-9][0-9]*$ ]]; then echo "GH_APP_INSTALLATION_ID must be a positive integer." >&2; exit 1; fi
+          case "$BUDGET_WRITES_ENABLED" in true|false) ;; *) echo "BUDGET_WRITES_ENABLED must be true or false." >&2; exit 1 ;; esac
+          case "$PUBLISH_BUDGET_LIFECYCLE_EVENTS" in true|false) ;; *) echo "PUBLISH_BUDGET_LIFECYCLE_EVENTS must be true or false." >&2; exit 1 ;; esac
+          case "$NOTIFICATION_CHANNELS" in Outlook|'Teams;Outlook') ;; *) echo "NOTIFICATION_CHANNELS must be Outlook or Teams;Outlook." >&2; exit 1 ;; esac
+          if [[ "${{ inputs.deployApplication }}" == "true" ]]; then
+            if [[ -z "$GITHUB_APP_PRIVATE_KEY" ]]; then
+              echo "GH_APP_PRIVATE_KEY is required when deployApplication is enabled." >&2
+              exit 1
+            fi
+            if [[ "$GITHUB_APP_PRIVATE_KEY" != *"BEGIN PRIVATE KEY"* && "$GITHUB_APP_PRIVATE_KEY" != *"BEGIN RSA PRIVATE KEY"* ]]; then
+              echo "GH_APP_PRIVATE_KEY must contain a PEM private-key header." >&2
+              exit 1
+            fi
+          fi
+
+      - name: Configure azd environment
+        shell: bash
+        run: |
+          resource_group="rg-cbm-${AZURE_ENV_NAME}"
+          az group create \
+            --name "$resource_group" \
+            --location "$AZURE_LOCATION" \
+            --tags application=copilot-budget-manager environment="$AZURE_ENV_NAME" managedBy=azd \
+            --output none
+          azd env new "$AZURE_ENV_NAME" \
+            --location "$AZURE_LOCATION" \
+            --subscription "$AZURE_SUBSCRIPTION_ID" \
+            --no-prompt
+          azd env set AZURE_RESOURCE_GROUP "$resource_group"
+          azd env set GITHUB_ENTERPRISE_ID "$GITHUB_ENTERPRISE_ID"
+          azd env set GITHUB_ENTERPRISE_SLUG "$GITHUB_ENTERPRISE_SLUG"
+          azd env set GITHUB_APP_ISSUER "$GITHUB_APP_ISSUER"
+          azd env set GITHUB_APP_INSTALLATION_ID "$GITHUB_APP_INSTALLATION_ID"
+          azd env set SQL_ADMIN_OBJECT_ID "$SQL_ADMIN_OBJECT_ID"
+          azd env set SQL_ADMIN_LOGIN "$SQL_ADMIN_LOGIN"
+          azd env set SQL_ADMIN_PRINCIPAL_TYPE "$SQL_ADMIN_PRINCIPAL_TYPE"
+          azd env set API_AUDIENCE "$API_AUDIENCE"
+          azd env set BUDGET_APPROVAL_LIFETIME_HOURS "$BUDGET_APPROVAL_LIFETIME_HOURS"
+          azd env set BUDGET_COOLDOWN_HOURS "$BUDGET_COOLDOWN_HOURS"
+          azd env set BUDGET_FORECAST_HEADROOM_PERCENT "$BUDGET_FORECAST_HEADROOM_PERCENT"
+          azd env set BUDGET_MAXIMUM_CUMULATIVE_MONTHLY_INCREASE "$BUDGET_MAXIMUM_CUMULATIVE_MONTHLY_INCREASE"
+          azd env set BUDGET_MAXIMUM_DATA_AGE_HOURS "$BUDGET_MAXIMUM_DATA_AGE_HOURS"
+          azd env set BUDGET_MAXIMUM_INCREASE_AMOUNT "$BUDGET_MAXIMUM_INCREASE_AMOUNT"
+          azd env set BUDGET_MAXIMUM_INCREASE_PERCENT "$BUDGET_MAXIMUM_INCREASE_PERCENT"
+          azd env set DASHBOARD_CLIENT_ID "$DASHBOARD_CLIENT_ID"
+          azd env set DASHBOARD_API_SCOPE "$DASHBOARD_API_SCOPE"
+          azd env set GRAPH_GITHUB_LOGIN_PROPERTY "$GRAPH_GITHUB_LOGIN_PROPERTY"
+          azd env set BUDGET_WRITES_ENABLED "$BUDGET_WRITES_ENABLED"
+          azd env set NOTIFICATION_CHANNELS "$NOTIFICATION_CHANNELS"
+          azd env set NOTIFICATION_RECIPIENTS "$NOTIFICATION_RECIPIENTS"
+          azd env set PUBLISH_BUDGET_LIFECYCLE_EVENTS "$PUBLISH_BUDGET_LIFECYCLE_EVENTS"
+          azd env set TEAMS_CHANNEL_ID "$TEAMS_CHANNEL_ID"
+          azd env set TEAMS_TEAM_ID "$TEAMS_TEAM_ID"
+          azd env set RAW_REPORT_RETENTION_DAYS "$RAW_REPORT_RETENTION_DAYS"
+          azd env set API_IMAGE_TAG "$GITHUB_SHA"
+          azd env set WORKER_IMAGE_TAG "$GITHUB_SHA"
+          azd env set DEPLOY_APPLICATION_RESOURCES false
+          echo "AZURE_RESOURCE_GROUP=$resource_group" >> "$GITHUB_ENV"
+
+      - name: Provision foundation
+        run: azd provision --no-prompt
+
+      - name: Store GitHub App private key
+        if: inputs.deployApplication
+        shell: bash
+        env:
+          GITHUB_APP_PRIVATE_KEY: ${{ secrets.GH_APP_PRIVATE_KEY }}
+        run: |
+          key_vault_name="$(azd env get-value AZURE_KEY_VAULT_NAME)"
+          parameters_file="$(mktemp)"
+          chmod 600 "$parameters_file"
+          trap 'rm -f "$parameters_file"' EXIT
+          jq -n \
+            --arg keyVaultName "$key_vault_name" \
+            '{"$schema":"https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#","contentVersion":"1.0.0.0","parameters":{"keyVaultName":{"value":$keyVaultName},"githubAppPrivateKey":{"value":$ENV.GITHUB_APP_PRIVATE_KEY}}}' \
+            > "$parameters_file"
+          az deployment group create \
+            --name "github-app-key-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --template-file infra/modules/github-app-secret.bicep \
+            --parameters "@$parameters_file" \
+            --output none
+
+      - name: Build API and worker images in ACR
+        if: inputs.deployApplication
+        shell: bash
+        run: |
+          registry_name="$(azd env get-value AZURE_CONTAINER_REGISTRY_NAME)"
+          az acr build \
+            --registry "$registry_name" \
+            --image "budget-manager-api:${GITHUB_SHA}" \
+            --file src/BudgetManager.Api/Dockerfile \
+            .
+          az acr build \
+            --registry "$registry_name" \
+            --image "budget-manager-worker:${GITHUB_SHA}" \
+            --file src/BudgetManager.Worker/Dockerfile \
+            .
+
+      - name: Provision API and worker jobs
+        if: inputs.deployApplication
+        shell: bash
+        run: |
+          azd env set DEPLOY_APPLICATION_RESOURCES true
+          azd provision --no-prompt
+
+      - name: Generate dashboard runtime configuration
+        if: inputs.deployApplication
+        shell: bash
+        run: |
+          printf 'window.BUDGET_MANAGER_CONFIG = {\n  apiBaseUrl: "",\n  enterpriseId: "%s",\n  authentication: { enabled: true, tenantId: "%s", clientId: "%s", apiScope: "%s" },\n};\n' \
+            "$GITHUB_ENTERPRISE_ID" "$AZURE_TENANT_ID" "$DASHBOARD_CLIENT_ID" "$DASHBOARD_API_SCOPE" > src/dashboard/config.js
+
+      - name: Read Static Web App deployment token
+        if: inputs.deployApplication
+        id: swa-token
+        shell: bash
+        run: |
+          az config set extension.use_dynamic_install=yes_without_prompt
+          static_web_app_name="$(azd env get-value AZURE_STATIC_WEB_APP_NAME)"
+          token="$(az staticwebapp secrets list \
+            --name "$static_web_app_name" \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --query properties.apiKey \
+            --output tsv)"
+          echo "::add-mask::$token"
+          echo "token=$token" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy dashboard content
+        if: inputs.deployApplication
+        uses: Azure/static-web-apps-deploy@1a947af9992250f3bc2e68ad0754c0b0c11566c9 # v1
+        with:
+          action: upload
+          app_location: src/dashboard
+          azure_static_web_apps_api_token: ${{ steps.swa-token.outputs.token }}
+          output_location: ""
+          skip_app_build: true
+
+      - name: Write deployment summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## Azure Commercial deployment"
+            echo ""
+            echo "- Resource group: \`$AZURE_RESOURCE_GROUP\`"
+            echo "- Environment: \`$AZURE_ENV_NAME\`"
+            echo "- Application resources requested: \`${{ inputs.deployApplication }}\`"
+            if [[ "${{ inputs.deployApplication }}" == "true" ]]; then
+              echo "- API: $(azd env get-value SERVICE_API_URI 2>/dev/null || true)"
+              echo "- Dashboard: $(azd env get-value AZURE_STATIC_WEB_APP_URL 2>/dev/null || true)"
+              echo ""
+              echo "Complete SQL identity grants, migration, Entra consent, connector authorization, and Static Web App backend linkage from \`infra/README.md\`."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

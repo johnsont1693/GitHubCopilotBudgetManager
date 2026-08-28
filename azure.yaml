@@ -1,0 +1,6 @@
+name: github-copilot-budget-manager
+metadata:
+  template: github-copilot-budget-manager@0.1.0
+infra:
+  provider: bicep
+  path: infra

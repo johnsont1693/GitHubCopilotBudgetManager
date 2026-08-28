@@ -1,0 +1,13 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "type": "AdaptiveCard",
+  "version": "1.5",
+  "body": [
+    { "type": "TextBlock", "text": "${subject}", "weight": "Bolder", "size": "Medium", "wrap": true },
+    { "type": "TextBlock", "text": "${payload.summary}", "wrap": true },
+    { "type": "TextBlock", "text": "Event: ${eventType}", "isSubtle": true, "spacing": "Small" }
+  ],
+  "actions": [
+    { "type": "Action.OpenUrl", "title": "Open Budget Manager", "url": "${dashboardUrl}" }
+  ]
+}

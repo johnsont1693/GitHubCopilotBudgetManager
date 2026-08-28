@@ -1,0 +1,136 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  dotnet:
+    name: .NET
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: "**/packages.lock.json"
+
+      - name: Restore
+        run: dotnet restore GitHubCopilotBudgetManager.slnx --locked-mode
+
+      - name: Restore local tools
+        run: dotnet tool restore
+
+      - name: Verify formatting
+        run: dotnet format GitHubCopilotBudgetManager.slnx --verify-no-changes --no-restore
+
+      - name: Build
+        run: dotnet build GitHubCopilotBudgetManager.slnx --configuration Release --no-restore
+
+      - name: Verify worker safety defaults
+        shell: bash
+        run: |
+          help="$(dotnet run --project src/BudgetManager.Worker/BudgetManager.Worker.csproj --configuration Release --no-build -- --help)"
+          grep -q 'BUDGET_WRITES_ENABLED=true' <<< "$help"
+          set +e
+          output="$(dotnet run --project src/BudgetManager.Worker/BudgetManager.Worker.csproj --configuration Release --no-build -- execute-approved 2>&1)"
+          status=$?
+          set -e
+          test "$status" -eq 3
+          grep -q 'Budget execution is disabled' <<< "$output"
+
+      - name: Test
+        run: dotnet test GitHubCopilotBudgetManager.slnx --configuration Release --no-build --collect:"XPlat Code Coverage"
+
+      - name: Upload coverage reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: coverage-${{ github.run_attempt }}
+          path: "**/TestResults/**/coverage.cobertura.xml"
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Verify migration model
+        run: >-
+          dotnet tool run dotnet-ef migrations has-pending-model-changes
+          --no-build
+          --project src/BudgetManager.Infrastructure/BudgetManager.Infrastructure.csproj
+          --startup-project src/BudgetManager.Infrastructure/BudgetManager.Infrastructure.csproj
+          --context BudgetManagerDbContext
+
+  dashboard:
+    name: Dashboard and contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Check JavaScript syntax
+        run: find src/dashboard -name '*.js' -print0 | xargs -0 -n1 node --check
+
+      - name: Validate JSON artifacts
+        run: |
+          find src/dashboard deploy/power-automate -name '*.json' -print0 | xargs -0 -n1 jq empty
+
+      - name: Check PowerShell syntax
+        shell: pwsh
+        run: |
+          $errors = @()
+          Get-ChildItem scripts -Filter *.ps1 | ForEach-Object {
+            $tokens = $null
+            $parseErrors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$tokens, [ref]$parseErrors) | Out-Null
+            $errors += $parseErrors
+          }
+          if ($errors.Count -gt 0) {
+            $errors | Format-List | Out-String | Write-Error
+          }
+
+  infrastructure:
+    name: Azure IaC
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Install Bicep
+        run: az bicep install
+
+      - name: Build Bicep
+        run: |
+          az bicep build --file infra/main.bicep --stdout > /dev/null
+          az bicep build --file infra/modules/github-app-secret.bicep --stdout > /dev/null
+
+      - name: Validate parameter JSON
+        run: jq empty infra/main.parameters.json
+
+  containers:
+    name: Containers
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Build API image
+        run: docker build --file src/BudgetManager.Api/Dockerfile --tag budget-manager-api:ci .
+
+      - name: Build worker image
+        run: docker build --file src/BudgetManager.Worker/Dockerfile --tag budget-manager-worker:ci .

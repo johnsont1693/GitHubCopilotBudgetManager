@@ -1,0 +1,41 @@
+# .NET
+bin/
+obj/
+artifacts/
+TestResults/
+*.user
+*.suo
+*.nupkg
+coverage/
+coverage.*
+
+# Frontend
+node_modules/
+dist/
+.parcel-cache/
+playwright-report/
+test-results/
+.playwright-mcp/
+
+# Editors and operating systems
+.vs/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Azure and local configuration
+.azure/
+.azd/
+.env
+.env.*
+local.settings.json
+appsettings.Local.json
+*.db
+*.db-shm
+*.db-wal
+
+# Secrets and certificates
+*.pfx
+*.p12
+*.pem
+*.key

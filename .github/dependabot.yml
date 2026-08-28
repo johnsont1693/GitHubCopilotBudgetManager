@@ -1,0 +1,22 @@
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      dotnet:
+        patterns:
+          - "*"
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: docker
+    directory: /src/BudgetManager.Api
+    schedule:
+      interval: weekly
+  - package-ecosystem: docker
+    directory: /src/BudgetManager.Worker
+    schedule:
+      interval: weekly

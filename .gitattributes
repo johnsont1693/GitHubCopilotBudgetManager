@@ -1,0 +1,40 @@
+# Normalize all text files to LF in the repository and on checkout so that Windows-authored
+# sources stay byte-identical to what the Linux CI runners and container builds consume.
+* text=auto eol=lf
+
+# Windows-only script hosts require CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Explicit text types.
+*.bicep text
+*.cs text diff=csharp
+*.csproj text
+*.css text
+*.html text diff=html
+*.js text
+*.json text
+*.md text
+*.ps1 text
+*.props text
+*.slnx text
+*.sql text
+*.yml text
+*.yaml text
+Dockerfile text
+.editorconfig text
+.gitattributes text
+.gitignore text
+
+# Binary types that must never be normalized or diffed as text.
+*.gif binary
+*.ico binary
+*.jpg binary
+*.jpeg binary
+*.pdf binary
+*.png binary
+*.webp binary
+*.zip binary
+
+# Generated lock files are text, but reviewing them line by line adds no value.
+packages.lock.json text linguist-generated=true

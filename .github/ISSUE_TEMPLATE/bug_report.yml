@@ -1,0 +1,96 @@
+name: Bug report
+description: Report a defect in the API, worker, dashboard, scripts, or deployment.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not report suspected security vulnerabilities here. Use the **Security** tab →
+        *Report a vulnerability* instead.
+
+        Never paste real enterprise names, GitHub logins, email addresses, principal names,
+        billing records, budget amounts, tokens, private keys, or connection strings.
+        Redact them, or use fictional values such as `contoso.com`.
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Preflight
+      options:
+        - label: This is not a security vulnerability.
+          required: true
+        - label: I checked docs/known-limitations.md and this is not an unsupported scenario.
+          required: true
+        - label: This report contains no real enterprise, user, billing, or credential data.
+          required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - API (BudgetManager.Api)
+        - Worker command (BudgetManager.Worker)
+        - Dashboard
+        - PowerShell automation script
+        - Azure deployment (Bicep / azd)
+        - Power Automate or Logic Apps workflow
+        - Documentation
+        - Other or unsure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: capability
+    attributes:
+      label: Adoption mode
+      description: See docs/modular-automation.md for the component matrix.
+      options:
+        - Full Azure deployment
+        - Budget automation only
+        - Notification automation only
+        - Local development or evaluation
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include redacted error output. For a failed budget write, include whether the request was approved and whether a GitHub drift conflict was reported.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Run `dotnet run --project src/BudgetManager.Worker -- sync-budgets`
+        2. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Output of `dotnet --version`, the operating system, and the database provider (Azure SQL or SQLite).
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Financial or privacy impact
+      description: Did this cause an incorrect budget write, a duplicate write, a missed notification, or exposure of user-level metrics? State "None known" if not applicable.
+    validations:
+      required: true

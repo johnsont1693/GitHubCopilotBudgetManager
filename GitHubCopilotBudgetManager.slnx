@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/BudgetManager.Api/BudgetManager.Api.csproj" />
+    <Project Path="src/BudgetManager.Application/BudgetManager.Application.csproj" />
+    <Project Path="src/BudgetManager.Domain/BudgetManager.Domain.csproj" />
+    <Project Path="src/BudgetManager.Infrastructure/BudgetManager.Infrastructure.csproj" />
+    <Project Path="src/BudgetManager.Worker/BudgetManager.Worker.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/BudgetManager.Api.Tests/BudgetManager.Api.Tests.csproj" />
+    <Project Path="tests/BudgetManager.Domain.Tests/BudgetManager.Domain.Tests.csproj" />
+    <Project Path="tests/BudgetManager.Infrastructure.Tests/BudgetManager.Infrastructure.Tests.csproj" />
+  </Folder>
+</Solution>

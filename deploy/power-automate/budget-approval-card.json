@@ -1,0 +1,25 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "type": "AdaptiveCard",
+  "version": "1.5",
+  "body": [
+    { "type": "TextBlock", "text": "GitHub budget change approval", "weight": "Bolder", "size": "Medium" },
+    { "type": "TextBlock", "text": "${subject}", "wrap": true },
+    {
+      "type": "FactSet",
+      "facts": [
+        { "title": "Budget", "value": "${payload.budgetId}" },
+        { "title": "Current", "value": "${payload.currentAmount}" },
+        { "title": "Proposed", "value": "${payload.proposedAmount}" },
+        { "title": "Forecast", "value": "${payload.forecastAmount}" },
+        { "title": "Expires", "value": "${payload.expiresAt}" }
+      ]
+    },
+    { "type": "TextBlock", "text": "Open the authenticated dashboard for evidence and guardrail details.", "wrap": true, "isSubtle": true }
+  ],
+  "actions": [
+    { "type": "Action.OpenUrl", "title": "Review evidence", "url": "${dashboardUrl}" },
+    { "type": "Action.Submit", "title": "Approve", "data": { "decision": "approve", "requestId": "${payload.requestId}", "expectedConcurrencyToken": "${payload.concurrencyToken}" } },
+    { "type": "Action.Submit", "title": "Reject", "data": { "decision": "reject", "requestId": "${payload.requestId}", "expectedConcurrencyToken": "${payload.concurrencyToken}" } }
+  ]
+}

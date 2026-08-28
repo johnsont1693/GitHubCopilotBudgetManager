@@ -1,0 +1,96 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "environmentName": {
+      "value": "${AZURE_ENV_NAME}"
+    },
+    "location": {
+      "value": "${AZURE_LOCATION}"
+    },
+    "enterpriseId": {
+      "value": "${GITHUB_ENTERPRISE_ID}"
+    },
+    "enterpriseSlug": {
+      "value": "${GITHUB_ENTERPRISE_SLUG}"
+    },
+    "githubAppIssuer": {
+      "value": "${GITHUB_APP_ISSUER}"
+    },
+    "githubAppInstallationId": {
+      "value": "${GITHUB_APP_INSTALLATION_ID}"
+    },
+    "sqlAdministratorObjectId": {
+      "value": "${SQL_ADMIN_OBJECT_ID}"
+    },
+    "sqlAdministratorLogin": {
+      "value": "${SQL_ADMIN_LOGIN}"
+    },
+    "sqlAdministratorPrincipalType": {
+      "value": "${SQL_ADMIN_PRINCIPAL_TYPE=Group}"
+    },
+    "apiAudience": {
+      "value": "${API_AUDIENCE}"
+    },
+    "dashboardClientId": {
+      "value": "${DASHBOARD_CLIENT_ID}"
+    },
+    "dashboardApiScope": {
+      "value": "${DASHBOARD_API_SCOPE}"
+    },
+    "graphGitHubLoginProperty": {
+      "value": "${GRAPH_GITHUB_LOGIN_PROPERTY}"
+    },
+    "teamsTeamId": {
+      "value": "${TEAMS_TEAM_ID=}"
+    },
+    "teamsChannelId": {
+      "value": "${TEAMS_CHANNEL_ID=}"
+    },
+    "notificationRecipients": {
+      "value": "${NOTIFICATION_RECIPIENTS=}"
+    },
+    "notificationChannels": {
+      "value": "${NOTIFICATION_CHANNELS=Teams;Outlook}"
+    },
+    "publishBudgetLifecycleEvents": {
+      "value": "${PUBLISH_BUDGET_LIFECYCLE_EVENTS=true}"
+    },
+    "budgetMaximumIncreaseAmount": {
+      "value": "${BUDGET_MAXIMUM_INCREASE_AMOUNT}"
+    },
+    "budgetMaximumIncreasePercent": {
+      "value": "${BUDGET_MAXIMUM_INCREASE_PERCENT}"
+    },
+    "budgetMaximumCumulativeMonthlyIncrease": {
+      "value": "${BUDGET_MAXIMUM_CUMULATIVE_MONTHLY_INCREASE}"
+    },
+    "budgetForecastHeadroomPercent": {
+      "value": "${BUDGET_FORECAST_HEADROOM_PERCENT}"
+    },
+    "budgetCooldownHours": {
+      "value": "${BUDGET_COOLDOWN_HOURS}"
+    },
+    "budgetMaximumDataAgeHours": {
+      "value": "${BUDGET_MAXIMUM_DATA_AGE_HOURS}"
+    },
+    "budgetApprovalLifetimeHours": {
+      "value": "${BUDGET_APPROVAL_LIFETIME_HOURS=48}"
+    },
+    "budgetWritesEnabled": {
+      "value": "${BUDGET_WRITES_ENABLED=false}"
+    },
+    "rawReportRetentionDays": {
+      "value": "${RAW_REPORT_RETENTION_DAYS}"
+    },
+    "deployApplicationResources": {
+      "value": "${DEPLOY_APPLICATION_RESOURCES=false}"
+    },
+    "apiImageTag": {
+      "value": "${API_IMAGE_TAG=latest}"
+    },
+    "workerImageTag": {
+      "value": "${WORKER_IMAGE_TAG=latest}"
+    }
+  }
+}
