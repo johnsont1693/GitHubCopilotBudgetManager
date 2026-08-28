@@ -41,6 +41,11 @@ document.querySelector("#notification-recipient-filter").addEventListener("input
 document.querySelector("#user-budget-search").addEventListener("input", renderUserBudgetStates);
 document.querySelector("#new-policy-button").addEventListener("click", () => document.querySelector("#policy-dialog").showModal());
 document.querySelector("#new-change-button").addEventListener("click", openChangeDialog);
+document.querySelectorAll("[data-close-dialog]").forEach(button => button.addEventListener("click", () => {
+  const dialog = document.querySelector(`#${button.dataset.closeDialog}`);
+  dialog.querySelector("form")?.reset();
+  dialog.close();
+}));
 document.querySelector("#policy-form").addEventListener("submit", savePolicy);
 document.querySelector("#change-form").addEventListener("submit", saveBudgetChange);
 document.querySelector("#close-evidence-button").addEventListener("click", () => document.querySelector("#evidence-dialog").close());
@@ -460,8 +465,8 @@ async function downloadEvidenceExport(kind) {
 }
 
 async function savePolicy(event) {
-  event.preventDefault();
   if (event.submitter?.value === "cancel") return;
+  event.preventDefault();
   const form = event.currentTarget;
   const data = new FormData(form);
   try {
@@ -480,8 +485,8 @@ function openChangeDialog() {
 }
 
 async function saveBudgetChange(event) {
-  event.preventDefault();
   if (event.submitter?.value === "cancel") return;
+  event.preventDefault();
   const form = event.currentTarget;
   const data = new FormData(form);
   try {
