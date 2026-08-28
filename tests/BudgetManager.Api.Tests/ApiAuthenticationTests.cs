@@ -43,7 +43,7 @@ public sealed class ApiAuthenticationTests
 
         using var response = await client.GetAsync(new Uri("/", UriKind.Relative));
         var content = await response.Content.ReadAsStringAsync();
-        using var scriptResponse = await client.GetAsync(new Uri("/app.js?v=4", UriKind.Relative));
+        using var scriptResponse = await client.GetAsync(new Uri("/app.js?v=5", UriKind.Relative));
         var script = await scriptResponse.Content.ReadAsStringAsync();
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -65,7 +65,7 @@ public sealed class ApiAuthenticationTests
             Assert.Single(response.Headers.GetValues("Strict-Transport-Security")));
         Assert.DoesNotContain("<script>", content, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("src=\"theme.js", content, StringComparison.Ordinal);
-        Assert.Contains("src=\"app.js?v=4\"", content, StringComparison.Ordinal);
+        Assert.Contains("src=\"app.js?v=5\"", content, StringComparison.Ordinal);
         Assert.Contains("const form = event.currentTarget;", script, StringComparison.Ordinal);
         Assert.DoesNotContain("event.currentTarget.reset()", script, StringComparison.Ordinal);
     }
